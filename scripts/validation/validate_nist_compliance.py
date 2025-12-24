@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
 Validate NIST FIPS 203/204/205 compliance across all eight layers
+Using kyber-py and dilithium-py pure Python implementations
 """
 
 import sys
@@ -9,13 +10,27 @@ import sys
 def validate_ml_kem_compliance():
     """Validate ML-KEM-1024 (FIPS 203) compliance"""
     try:
-        from pqcrypto.kem.kyber1024 import generate_keypair
-        public_key, secret_key = generate_keypair()
-        print("ML-KEM-1024 (FIPS 203): COMPLIANT")
-        return True
+        from kyber_py.ml_kem import ML_KEM_1024
+
+        # Generate keypair
+        ek, dk = ML_KEM_1024.keygen()
+
+        # Encapsulate
+        shared_key, ciphertext = ML_KEM_1024.encaps(ek)
+
+        # Decapsulate
+        recovered_key = ML_KEM_1024.decaps(dk, ciphertext)
+
+        # Verify keys match
+        if shared_key == recovered_key:
+            print("ML-KEM-1024 (FIPS 203): COMPLIANT")
+            return True
+        else:
+            print("ML-KEM-1024 (FIPS 203): FAILED - Key mismatch")
+            return False
     except ImportError:
-        print("ML-KEM-1024 (FIPS 203): SKIPPED - pqcrypto not installed")
-        return None  # Neither pass nor fail
+        print("ML-KEM-1024 (FIPS 203): SKIPPED - kyber-py not installed")
+        return None
     except Exception as e:
         print(f"ML-KEM-1024 (FIPS 203): FAILED - {e}")
         return False
@@ -24,30 +39,54 @@ def validate_ml_kem_compliance():
 def validate_ml_dsa_compliance():
     """Validate ML-DSA-87 (FIPS 204) compliance"""
     try:
-        from pqcrypto.sign.dilithium5 import generate_keypair, sign, verify
-        public_key, secret_key = generate_keypair()
-        message = b"test"
-        signature = sign(message, secret_key)
-        verify(signature, message, public_key)
-        print("ML-DSA-87 (FIPS 204): COMPLIANT")
-        return True
+        from dilithium_py.ml_dsa import ML_DSA_87
+
+        # Generate keypair
+        pk, sk = ML_DSA_87.keygen()
+
+        # Sign message
+        message = b"NIST FIPS 204 Compliance Test"
+        signature = ML_DSA_87.sign(sk, message)
+
+        # Verify signature
+        is_valid = ML_DSA_87.verify(pk, message, signature)
+
+        if is_valid:
+            print("ML-DSA-87 (FIPS 204): COMPLIANT")
+            return True
+        else:
+            print("ML-DSA-87 (FIPS 204): FAILED - Signature verification failed")
+            return False
     except ImportError:
-        print("ML-DSA-87 (FIPS 204): SKIPPED - pqcrypto not installed")
-        return None  # Neither pass nor fail
+        print("ML-DSA-87 (FIPS 204): SKIPPED - dilithium-py not installed")
+        return None
     except Exception as e:
         print(f"ML-DSA-87 (FIPS 204): FAILED - {e}")
         return False
 
 
 def validate_classical_crypto():
-    """Validate classical cryptographic primitives"""
+    """Validate classical cryptographic primitives (AES-256-GCM)"""
     try:
         from Crypto.Cipher import AES
         from Crypto.Random import get_random_bytes
+
+        # Test AES-256-GCM encryption/decryption
         key = get_random_bytes(32)
         cipher = AES.new(key, AES.MODE_GCM)
-        print("AES-256-GCM: COMPLIANT")
-        return True
+        plaintext = b"Classical crypto compliance test"
+        ciphertext, tag = cipher.encrypt_and_digest(plaintext)
+
+        # Decrypt
+        cipher_dec = AES.new(key, AES.MODE_GCM, nonce=cipher.nonce)
+        decrypted = cipher_dec.decrypt_and_verify(ciphertext, tag)
+
+        if decrypted == plaintext:
+            print("AES-256-GCM: COMPLIANT")
+            return True
+        else:
+            print("AES-256-GCM: FAILED - Decryption mismatch")
+            return False
     except ImportError:
         print("AES-256-GCM: SKIPPED - pycryptodome not installed")
         return None
@@ -75,13 +114,14 @@ def main():
     skipped = len([r for r in results if r is None])
 
     if len(actual_results) == 0:
-        print(f"ALL TESTS SKIPPED ({skipped} skipped) - Install pqcrypto for full validation")
-        return 0  # Don't fail CI if deps not installed
+        print(f"ALL TESTS SKIPPED ({skipped} skipped)")
+        return 0
     elif all(actual_results):
         print(f"ALL TESTS PASSED - NIST COMPLIANT ({skipped} skipped)")
         return 0
     else:
-        print("COMPLIANCE VALIDATION FAILED")
+        failed = len([r for r in actual_results if not r])
+        print(f"COMPLIANCE VALIDATION FAILED ({failed} failed, {skipped} skipped)")
         return 1
 
 

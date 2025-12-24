@@ -98,7 +98,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install pytest pycryptodome
+          pip install pytest pycryptodome kyber-py dilithium-py
 
       - name: Run pytest
         run: |
