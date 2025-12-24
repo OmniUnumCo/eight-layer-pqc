@@ -96,16 +96,21 @@ jobs:
           python -m py_compile tests/unit/*.py
           echo "All Python files have valid syntax"
 
-      - name: Install dependencies
+      - name: Create virtual environment and install dependencies
         run: |
+          python -m venv .venv
+          source .venv/bin/activate
+          pip install --upgrade pip
           pip install pytest pycryptodome kyber-py dilithium-py
 
       - name: Run pytest
         run: |
+          source .venv/bin/activate
           python -m pytest tests/unit/ -v
 
       - name: Run NIST Compliance Validation
         run: |
+          source .venv/bin/activate
           python scripts/validation/validate_nist_compliance.py
 
   # Final status
