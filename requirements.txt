@@ -8,12 +8,6 @@ liboqs-python>=0.9.0
 cryptography>=41.0.0
 pycryptodome>=3.19.0
 
-# Hybrid Encryption Support
-pyca-cryptography>=41.0.0
-
-# Hash Functions (SHA-3, BLAKE2)
-hashlib>=20081119
-
 # Testing and Validation
 pytest>=7.4.0
 pytest-cov>=4.1.0
