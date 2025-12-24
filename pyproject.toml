@@ -45,6 +45,8 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# WARNING: pqcrypto requires cffi<2.0.0 which conflicts with modern packages
+# Install in isolated environment: pip install eight-layer-pqc[pqc]
 pqc = [
     "pqcrypto>=0.1.3",
 ]
